@@ -1,0 +1,1 @@
+# To-connect-three-6A-sockets-in-parallel-and-control-all-three-sockets-using-one-switch
