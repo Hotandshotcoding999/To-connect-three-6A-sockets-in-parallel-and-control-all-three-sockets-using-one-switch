@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three 6A Sockets Controlled by One Switch - Interactive Simulator</title>
+    <!-- Tailwind CSS for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .wire-glow {
+            filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.8));
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-slate-800 border-b border-slate-700 py-4 px-6 shadow-md">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-blue-600 p-2.5 rounded-xl text-white shadow-lg shadow-blue-500/30">
+                    <i class="fa-solid fa-bolt text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">Three 6A Sockets in Parallel &bull; Switch Controlled</h1>
+                    <p class="text-xs text-slate-400">Interactive Circuit Simulator based on your hand-drawn wiring diagram</p>
+                </div>
+            </div>
+            <!-- Global Controls -->
+            <div class="flex items-center gap-3 bg-slate-900/60 p-2 rounded-xl border border-slate-700">
+                <button id="mainsPowerBtn" onclick="toggleMains()" class="px-4 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20">
+                    <i class="fa-solid fa-power-off"></i> <span id="mainsText">Mains Power: ON</span>
+                </button>
+                <button onclick="resetSimulation()" class="px-3 py-2 rounded-lg font-medium text-sm transition-all bg-slate-700 hover:bg-slate-600 text-slate-200">
+                    <i class="fa-solid fa-rotate-right mr-1"></i> Reset
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left 2 Cols: Interactive Circuit Diagram Canvas & Controls -->
+        <div class="lg:col-span-2 flex flex-col gap-6">
+            
+            <!-- Circuit Visualizer Card -->
+            <div class="bg-slate-800 rounded-2xl border border-slate-700 p-6 shadow-xl relative overflow-hidden flex flex-col items-center justify-center min-h-[520px]">
+                
+                <!-- Status Banner Overlay -->
+                <div id="statusBanner" class="absolute top-4 left-4 right-4 bg-slate-900/80 backdrop-blur border border-slate-700 px-4 py-3 rounded-xl flex items-center justify-between text-sm shadow-md transition-all">
+                    <div class="flex items-center gap-2">
+                        <span id="statusIndicatorDot" class="w-3 h-3 rounded-full bg-red-500 animate-pulse"></span>
+                        <span id="statusMessage" class="font-medium text-slate-200">Circuit is OFF. Turn on switch or plug in appliances.</span>
+                    </div>
+                    <div class="text-xs text-slate-400 flex items-center gap-4">
+                        <span>Voltage: <strong class="text-slate-200">230V AC</strong></span>
+                        <span>Total Current: <strong id="currentDisplay" class="text-slate-200">0.0 A</strong></span>
+                    </div>
+                </div>
+
+                <!-- SVG Interactive Circuit Diagram -->
+                <div class="w-full max-w-3xl mt-12 relative">
+                    <svg viewBox="0 0 900 520" class="w-full h-auto drop-shadow-lg select-none">
+                        
+                        <!-- Mains Supply Bus Bars on Top -->
+                        <g id="mainsSupplyGroup">
+                            <!-- Line (Red Wire Supply) -->
+                            <line x1="40" y1="45" x2="680" y2="45" stroke="#ef4444" stroke-width="4" id="lineSupplyWire" />
+                            <text x="50" y="32" fill="#ef4444" font-weight="600" font-size="12">Line Supply (L) - Red</text>
+                            
+                            <!-- Neutral (Black Wire Supply) -->
+                            <line x1="40" y1="80" x2="800" y2="80" stroke="#3b82f6" stroke-width="4" id="neutralSupplyWire" />
+                            <text x="50" y="102" fill="#3b82f6" font-weight="600" font-size="12">Neutral (N) - Black</text>
+                        </g>
+
+                        <!-- Single Pole Switch -->
+                        <g id="switchGroup">
+                            <path d="M 160 45 L 160 145" stroke="#ef4444" stroke-width="4" fill="none" />
+                            
+                            <rect x="110" y="145" width="100" height="130" rx="10" fill="#1e293b" stroke="#64748b" stroke-width="2" />
+                            <text x="160" y="168" fill="#cbd5e1" font-size="12" font-weight="bold" text-anchor="middle">Single Pole</text>
+                            <text x="160" y="182" fill="#94a3b8" font-size="10" text-anchor="middle">Switch</text>
+                            
+                            <circle cx="160" cy="200" r="4" fill="#ef4444" />
+                            <circle cx="160" cy="255" r="4" fill="#ef4444" />
+
+                            <!-- Interactive Button -->
+                            <g onclick="toggleSwitch()" class="cursor-pointer">
+                                <rect x="135" y="210" width="50" height="35" rx="5" fill="#334155" stroke="#94a3b8" stroke-width="2" class="hover:fill-slate-700 transition-colors" />
+                                <line x1="160" y1="216" x2="160" y2="239" stroke="#cbd5e1" stroke-width="4" stroke-linecap="round" id="switchBlade" class="transition-all transform origin-top" />
+                                <text x="160" y="292" fill="#38bdf8" font-size="10" font-weight="600" text-anchor="middle" id="switchStatusLabel">TOGGLE</text>
+                            </g>
+                        </g>
+
+                        <!-- Live feed from switch output to Socket 1 L -->
+                        <path d="M 160 255 L 160 330 L 260 330 L 260 375" stroke="#ef4444" stroke-width="4" fill="none" id="wireSwitchToSocket1" />
+
+                        <!-- Parallel Live Loops between Socket 1, 2, and 3 -->
+                        <!-- Socket 1 L (260, 375) to Socket 2 L (460, 375) -->
+                        <path d="M 260 355 L 260 340 L 460 340 L 460 375" stroke="#ef4444" stroke-width="4" fill="none" id="wireSocket1To2L" />
+                        <!-- Socket 2 L (460, 375) to Socket 3 L (660, 375) -->
+                        <path d="M 460 355 L 460 340 L 660 340 L 660 375" stroke="#ef4444" stroke-width="4" fill="none" id="wireSocket2To3L" />
+
+                        <!-- Socket 1: 6A 3-Pin Socket (Left) -->
+                        <g id="socket1Group">
+                            <rect x="210" y="315" width="120" height="135" rx="12" fill="#1e293b" stroke="#64748b" stroke-width="2" />
+                            <text x="270" y="338" fill="#cbd5e1" font-size="11" font-weight="bold" text-anchor="middle">6A Socket 1</text>
+                            <circle cx="270" cy="365" r="5" fill="#22c55e" /> <text x="270" y="354" fill="#22c55e" font-size="9" font-weight="bold" text-anchor="middle">E</text>
+                            <circle cx="245" cy="410" r="5" fill="#ef4444" /> <text x="233" y="414" fill="#ef4444" font-size="9" font-weight="bold" text-anchor="end">L</text>
+                            <circle cx="295" cy="410" r="5" fill="#3b82f6" /> <text x="310" y="414" fill="#3b82f6" font-size="9" font-weight="bold" text-anchor="start">N</text>
+                        </g>
+
+                        <!-- Socket 2: 6A 3-Pin Socket (Middle) -->
+                        <g id="socket2Group">
+                            <rect x="410" y="315" width="120" height="135" rx="12" fill="#1e293b" stroke="#64748b" stroke-width="2" />
+                            <text x="470" y="338" fill="#cbd5e1" font-size="11" font-weight="bold" text-anchor="middle">6A Socket 2</text>
+                            <circle cx="470" cy="365" r="5" fill="#22c55e" /> <text x="470" y="354" fill="#22c55e" font-size="9" font-weight="bold" text-anchor="middle">E</text>
+                            <circle cx="445" cy="410" r="5" fill="#ef4444" /> <text x="433" y="414" fill="#ef4444" font-size="9" font-weight="bold" text-anchor="end">L</text>
+                            <circle cx="495" cy="410" r="5" fill="#3b82f6" /> <text x="510" y="414" fill="#3b82f6" font-size="9" font-weight="bold" text-anchor="start">N</text>
+                        </g>
+
+                        <!-- Socket 3: 6A 3-Pin Socket (Right) -->
+                        <g id="socket3Group">
+                            <rect x="610" y="315" width="120" height="135" rx="12" fill="#1e293b" stroke="#64748b" stroke-width="2" />
+                            <text x="670" y="338" fill="#cbd5e1" font-size="11" font-weight="bold" text-anchor="middle">6A Socket 3</text>
+                            <circle cx="670" cy="365" r="5" fill="#22c55e" /> <text x="670" y="354" fill="#22c55e" font-size="9" font-weight="bold" text-anchor="middle">E</text>
+                            <circle cx="645" cy="410" r="5" fill="#ef4444" /> <text x="633" y="414" fill="#ef4444" font-size="9" font-weight="bold" text-anchor="end">L</text>
+                            <circle cx="695" cy="410" r="5" fill="#3b82f6" /> <text x="710" y="414" fill="#3b82f6" font-size="9" font-weight="bold" text-anchor="start">N</text>
+                        </g>
+
+                        <!-- Neutral return wiring from all three sockets in parallel back to Neutral supply -->
+                        <g id="neutralWiringGroup">
+                            <!-- Socket 3 N (695, 410) to Socket 2 N (495, 410) -->
+                            <path d="M 695 410 L 735 410 L 735 465 L 495 465 L 495 410" stroke="#3b82f6" stroke-width="4" fill="none" />
+                            <!-- Socket 2 N to Socket 1 N (295, 410) & back to Neutral bus -->
+                            <path d="M 495 410 L 535 410 L 535 480 L 295 480 L 295 410" stroke="#3b82f6" stroke-width="4" fill="none" />
+                            <!-- Main Neutral Return to Top Bus -->
+                            <path d="M 295 410 L 295 495 L 800 495 L 800 80" stroke="#3b82f6" stroke-width="4" fill="none" id="wireNeutralReturn" />
+                        </g>
+
+                        <!-- Earth wiring linking all 3 sockets and leading to Ground -->
+                        <g id="earthWiringGroup">
+                            <!-- Socket 3 E to Socket 2 E -->
+                            <path d="M 670 365 L 470 365" stroke="#22c55e" stroke-width="4" fill="none" />
+                            <!-- Socket 2 E to Socket 1 E -->
+                            <path d="M 470 365 L 270 365" stroke="#22c55e" stroke-width="4" fill="none" />
+                            <!-- Drop from Socket 3 E down to Ground -->
+                            <path d="M 670 365 L 670 515 L 360 515 L 360 470" stroke="#22c55e" stroke-width="4" fill="none" />
+
+                            <!-- Ground Symbol at Bottom -->
+                            <g transform="translate(360, 470)">
+                                <line x1="-15" y1="0" x2="15" y2="0" stroke="#22c55e" stroke-width="4" />
+                                <line x1="-10" y1="6" x2="10" y2="6" stroke="#22c55e" stroke-width="3" />
+                                <line x1="-4" y1="12" x2="4" y2="12" stroke="#22c55e" stroke-width="2" />
+                                <text x="20" y="4" fill="#22c55e" font-weight="bold" font-size="11">Ground</text>
+                            </g>
+                        </g>
+
+                        <!-- Connected Test Appliances (Plugged into Sockets) -->
+                        <g id="app1Group" class="cursor-pointer" onclick="toggleAppliance(1)">
+                            <rect x="230" y="465" width="80" height="35" rx="5" fill="#0f172a" stroke="#eab308" stroke-width="1.5" />
+                            <text x="270" y="480" fill="#facc15" font-size="9" font-weight="bold" text-anchor="middle">Lamp 1</text>
+                            <circle cx="270" cy="492" r="3.5" fill="#475569" id="app1Led" />
+                            <text x="280" y="495" fill="#cbd5e1" font-size="8" id="app1Text">ON</text>
+                        </g>
+
+                        <g id="app2Group" class="cursor-pointer" onclick="toggleAppliance(2)">
+                            <rect x="430" y="465" width="80" height="35" rx="5" fill="#0f172a" stroke="#eab308" stroke-width="1.5" />
+                            <text x="470" y="480" fill="#facc15" font-size="9" font-weight="bold" text-anchor="middle">Fan 2</text>
+                            <circle cx="470" cy="492" r="3.5" fill="#475569" id="app2Led" />
+                            <text x="480" y="495" fill="#cbd5e1" font-size="8" id="app2Text">ON</text>
+                        </g>
+
+                        <g id="app3Group" class="cursor-pointer" onclick="toggleAppliance(3)">
+                            <rect x="630" y="465" width="80" height="35" rx="5" fill="#0f172a" stroke="#eab308" stroke-width="1.5" />
+                            <text x="670" y="480" fill="#facc15" font-size="9" font-weight="bold" text-anchor="middle">Charger 3</text>
+                            <circle cx="670" cy="492" r="3.5" fill="#475569" id="app3Led" />
+                            <text x="680" y="495" fill="#cbd5e1" font-size="8" id="app3Text">ON</text>
+                        </g>
+
+                    </svg>
+                </div>
+
+                <!-- Interactive Guide Prompt -->
+                <div class="mt-4 text-center text-xs text-slate-400 bg-slate-900/40 px-4 py-2 rounded-lg border border-slate-700/50">
+                    💡 <strong class="text-slate-300">Tip:</strong> Click the <span class="text-sky-400 font-semibold">Single Pole Switch</span> to control all three parallel sockets simultaneously!
+                </div>
+
+            </div>
+
+            <!-- Quick Control Actions Panel -->
+            <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 flex items-center justify-between">
+                <div>
+                    <h3 class="font-semibold text-slate-200">Master Single Pole Switch</h3>
+                    <p class="text-xs text-slate-400">Controls live supply to all 3 sockets in parallel</p>
+                </div>
+                <button id="switchMainBtn" onclick="toggleSwitch()" class="px-5 py-2.5 rounded-lg font-bold text-xs bg-rose-600 hover:bg-rose-500 text-white shadow transition-all">
+                    SWITCH: OFF
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Right Col: Educational Wiring Legend & Explanations -->
+        <div class="flex flex-col gap-6">
+            
+            <!-- Legend Card -->
+            <div class="bg-slate-800 rounded-2xl border border-slate-700 p-6 shadow-xl">
+                <h2 class="text-lg font-bold text-slate-100 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-book-open text-blue-500"></i> Wiring Legend
+                </h2>
+                <div class="space-y-4 text-sm">
+                    <div class="flex items-start gap-3 p-3 rounded-xl bg-slate-900/50 border border-slate-700">
+                        <div class="w-4 h-4 rounded-full bg-red-500 mt-1 shrink-0"></div>
+                        <div>
+                            <strong class="text-red-400">Live Wire (Red)</strong>
+                            <p class="text-xs text-slate-400 mt-0.5">Feeds mains supply to the switch. When ON, switch output loops in parallel to the 'L' terminal of all 3 sockets.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-3 p-3 rounded-xl bg-slate-900/50 border border-slate-700">
+                        <div class="w-4 h-4 rounded-full bg-blue-500 mt-1 shrink-0"></div>
+                        <div>
+                            <strong class="text-blue-400">Neutral Wire (Black)</strong>
+                            <p class="text-xs text-slate-400 mt-0.5">Returns current from the 'N' terminals of all sockets back to the main neutral supply line.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-3 p-3 rounded-xl bg-slate-900/50 border border-slate-700">
+                        <div class="w-4 h-4 rounded-full bg-green-500 mt-1 shrink-0"></div>
+                        <div>
+                            <strong class="text-green-400">Earth Wire (Green)</strong>
+                            <p class="text-xs text-slate-400 mt-0.5">Connects all socket earth ('E') terminals together and leads down to the central earth grounding rod.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Testing & Operation Steps -->
+            <div class="bg-slate-800 rounded-2xl border border-slate-700 p-6 shadow-xl flex-1">
+                <h2 class="text-lg font-bold text-slate-100 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-vial-circle-check text-emerald-500"></i> Operation & Parallel Testing
+                </h2>
+                <ol class="space-y-3 text-sm text-slate-300 list-decimal list-inside">
+                    <li class="pl-1">
+                        <strong class="text-slate-100">Master Control:</strong> Turning ON the single pole switch instantly powers all three 6A sockets simultaneously.
+                    </li>
+                    <li class="pl-1">
+                        <strong class="text-slate-100">Parallel Circuit:</strong> Each socket maintains full 230V independent of the others sharing the same live bus.
+                    </li>
+                    <li class="pl-1">
+                        <strong class="text-slate-100">Plug/Unplug:</strong> Click any appliance at the bottom to test individual device states.
+                    </li>
+                </ol>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-800 border-t border-slate-700 py-4 text-center text-xs text-slate-400">
+        Three 6A Sockets Wiring Simulator &bull; Interactive Educational Tool
+    </footer>
+
+    <!-- Simulation JavaScript Logic -->
+    <script>
+        let mainsOn = true;
+        let switchOn = false;
+        let app1Plugged = true;
+        let app2Plugged = true;
+        let app3Plugged = true;
+
+        function toggleMains() {
+            mainsOn = !mainsOn;
+            const btn = document.getElementById('mainsPowerBtn');
+            const text = document.getElementById('mainsText');
+            if (mainsOn) {
+                btn.className = "px-4 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20";
+                text.textContent = "Mains Power: ON";
+            } else {
+                btn.className = "px-4 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2 bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-600/20";
+                text.textContent = "Mains Power: OFF";
+            }
+            updateSimulation();
+        }
+
+        function toggleSwitch() {
+            switchOn = !switchOn;
+            updateSimulation();
+        }
+
+        function toggleAppliance(num) {
+            if (num === 1) app1Plugged = !app1Plugged;
+            if (num === 2) app2Plugged = !app2Plugged;
+            if (num === 3) app3Plugged = !app3Plugged;
+            updateSimulation();
+        }
+
+        function resetSimulation() {
+            mainsOn = true;
+            switchOn = false;
+            app1Plugged = true;
+            app2Plugged = true;
+            app3Plugged = true;
+            
+            const btn = document.getElementById('mainsPowerBtn');
+            btn.className = "px-4 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20";
+            document.getElementById('mainsText').textContent = "Mains Power: ON";
+            
+            updateSimulation();
+        }
+
+        function updateSimulation() {
+            const mainBtn = document.getElementById('switchMainBtn');
+            const blade = document.getElementById('switchBlade');
+            const label = document.getElementById('switchStatusLabel');
+            const wireSwitch = document.getElementById('wireSwitchToSocket1');
+            const wire1to2 = document.getElementById('wireSocket1To2L');
+            const wire2to3 = document.getElementById('wireSocket2To3L');
+
+            if (switchOn) {
+                mainBtn.textContent = "SWITCH: ON";
+                mainBtn.className = "px-5 py-2.5 rounded-lg font-bold text-xs bg-emerald-600 hover:bg-emerald-500 text-white shadow transition-all";
+                blade.setAttribute('y2', '224');
+                label.textContent = "ON";
+                label.setAttribute('fill', '#4ade80');
+            } else {
+                mainBtn.textContent = "SWITCH: OFF";
+                mainBtn.className = "px-5 py-2.5 rounded-lg font-bold text-xs bg-rose-600 hover:bg-rose-500 text-white shadow transition-all";
+                blade.setAttribute('y2', '239');
+                label.textContent = "OFF";
+                label.setAttribute('fill', '#f87171');
+            }
+
+            let activeCurrent = 0.0;
+
+            // Appliance 1 status
+            if (mainsOn && switchOn && app1Plugged) {
+                document.getElementById('app1Led').setAttribute('fill', '#22c55e');
+                document.getElementById('app1Text').textContent = "ON";
+                activeCurrent += 1.0;
+            } else {
+                document.getElementById('app1Led').setAttribute('fill', '#475569');
+                document.getElementById('app1Text').textContent = app1Plugged ? "OFF" : "UNPLUGGED";
+            }
+
+            // Appliance 2 status
+            if (mainsOn && switchOn && app2Plugged) {
+                document.getElementById('app2Led').setAttribute('fill', '#22c55e');
+                document.getElementById('app2Text').textContent = "ON";
+                activeCurrent += 1.5;
+            } else {
+                document.getElementById('app2Led').setAttribute('fill', '#475569');
+                document.getElementById('app2Text').textContent = app2Plugged ? "OFF" : "UNPLUGGED";
+            }
+
+            // Appliance 3 status
+            if (mainsOn && switchOn && app3Plugged) {
+                document.getElementById('app3Led').setAttribute('fill', '#22c55e');
+                document.getElementById('app3Text').textContent = "ON";
+                activeCurrent += 0.8;
+            } else {
+                document.getElementById('app3Led').setAttribute('fill', '#475569');
+                document.getElementById('app3Text').textContent = app3Plugged ? "OFF" : "UNPLUGGED";
+            }
+
+            // Live wires glow if switch is on and mains is on
+            if (mainsOn && switchOn) {
+                wireSwitch.setAttribute('stroke', '#f87171');
+                wireSwitch.classList.add('wire-glow');
+                wire1to2.setAttribute('stroke', '#f87171');
+                wire1to2.classList.add('wire-glow');
+                wire2to3.setAttribute('stroke', '#f87171');
+                wire2to3.classList.add('wire-glow');
+            } else {
+                wireSwitch.classList.remove('wire-glow');
+                wire1to2.classList.remove('wire-glow');
+                wire2to3.classList.remove('wire-glow');
+            }
+
+            // Status message
+            const statusDot = document.getElementById('statusIndicatorDot');
+            const statusMsg = document.getElementById('statusMessage');
+            const currentDisp = document.getElementById('currentDisplay');
+
+            currentDisp.textContent = activeCurrent.toFixed(1) + " A";
+
+            if (!mainsOn) {
+                statusDot.className = "w-3 h-3 rounded-full bg-rose-500";
+                statusMsg.textContent = "Mains power is turned OFF at source.";
+            } else if (activeCurrent > 0) {
+                statusDot.className = "w-3 h-3 rounded-full bg-emerald-400 animate-ping";
+                statusMsg.textContent = "Circuit active! Single switch controlling all 3 parallel sockets.";
+            } else {
+                statusDot.className = "w-3 h-3 rounded-full bg-amber-500";
+                statusMsg.textContent = "Mains is ON. Turn on switch or plug in appliances to test.";
+            }
+        }
+    </script>
+</body>
+</html>
